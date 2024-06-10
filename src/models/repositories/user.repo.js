@@ -58,9 +58,21 @@ const createUser = async ({
     }
 };
 
+const findUserByTextSearch = async ({ text_search }) => {
+    try {
+        const query = `SELECT * FROM Users WHERE user_name LIKE '%' || $1 || '%' LIMIT 3`;
+        const result = await db.query(query, [text_search]);
+        return result.rows;
+    } catch (error) {
+        throw error;
+    }
+};
+
+
 module.exports = {
     findUserByUserName, 
     createUser,
     findUserById,
-    getNameAvatarById
+    getNameAvatarById,
+    findUserByTextSearch
 };

@@ -7,8 +7,9 @@ const {
   findFollow,
 } = require("../models/repositories/follower.repo");
 const { BadRequestError } = require("../core/error.response");
-const { findUserById } = require("../models/repositories/user.repo");
+const { findUserById, getNameAvatarById } = require("../models/repositories/user.repo");
 const { updateFriend } = require("../models/repositories/friend.repo");
+const NotificationService = require("./notification.service");
 
 class FollowerService {
   static updateFollow = async (
@@ -43,7 +44,7 @@ class FollowerService {
     // --------------------------------------------------
 
     // --------------------------------------------------
-    // Người hợp tạo ra follow, check follow của user còn lại, set friend
+    // Trường hợp tạo ra follow, check follow của user còn lại, set friend
     // --------------------------------------------------
     if (newFollow.status) {
       let inverseFollow = await findFollow({
@@ -66,7 +67,16 @@ class FollowerService {
           if(!setFriendFollowerUser || !setFriendFollowedUser){
             throw new BadRequestError("Error: Create follow fail");
           }
+
+          const {user_name} = await getNameAvatarById({_id: newFollow.followed_user_id})
+          await NotificationService.pusNotiToSystem({ id: newFollow.followed_user_id, user_name, type: "ACCEPT FRIEND" }, {follower_user_id: newFollow.follower_user_id});
+        }else{
+          const {user_name} = await getNameAvatarById({_id: newFollow.followed_user_id})
+          await NotificationService.pusNotiToSystem({ id: newFollow.followed_user_id, user_name, type: "ADD FRIEND" }, {follower_user_id: newFollow.follower_user_id});
         }
+      }else{
+      const {user_name} = await getNameAvatarById({_id: newFollow.followed_user_id})
+      await NotificationService.pusNotiToSystem({ id: newFollow.followed_user_id, user_name, type: "ADD FRIEND" }, {follower_user_id: newFollow.follower_user_id});
       }
     }else if(!newFollow.status){
       let inverseFollow = await findFollow({
@@ -97,7 +107,7 @@ class FollowerService {
     { followed_user_id },
     { limit = 10, sort = "createdAt", type_sort = 1, page = 1 }
   ) => {
-    const newFollow = await getFollowByUser({
+    const listFollow = await getFollowByUser({
       followed_user_id,
       limit,
       sort,
@@ -105,11 +115,24 @@ class FollowerService {
       page,
     });
 
-    if (!newFollow) {
+    if (!listFollow) {
       throw new BadRequestError("Error: Create follow fail");
     }
 
-    return newFollow;
+    const newFollows = await Promise.all(
+      listFollow.map(async (follow) => {
+        const {user_avatar, user_name} = await getNameAvatarById({
+          _id: follow.follower_user_id,
+        });
+
+        return {
+          ...follow._doc,
+          follower_user_name: user_name,
+          follower_user_avatar: user_avatar,
+        };
+      })
+    );
+    return newFollows;
   };
 
   static getUserFollow = async (

@@ -75,17 +75,49 @@ class PostService {
     // --------------------------------------------------
     // Lấy list post nổi bật
     // --------------------------------------------------
-    // const posts = await getListPost({ limit, sort, type_sort, page });
-    // if (!posts) {
-    //   throw new BadRequestError("Error: Empty list post");
-    // }
+    const posts = await getListPost({ limit, sort, type_sort, page });
+      if (!posts) {
+        throw new BadRequestError("Error: Empty list post");
+      }
 
-    // return {
-    //     posts,
-    // };
+      const newPosts = await Promise.all(
+        posts.map(async (post) => {
+          const { user_name, user_avatar } = await getNameAvatarById({
+            _id: post.author_id,
+          });
+
+          post.likes = await likeModel.countDocuments({ post_id: post.id });
+          post.comments = await commentModel.countDocuments({
+            post_id: post.id,
+          });
+          post.shares = await shareModel.countDocuments({ post_id: post.id });
+
+          const isLike = await likeModel.countDocuments({post_id: post.id, user_id: user.id})
+          if(post.share_from_user_id){
+            const foundName = await getNameAvatarById({
+              _id: post.share_from_user_id,
+            });
+            return {
+              ...post._doc,
+              author_name: user_name,
+              author_avatar: user_avatar,
+              is_like: isLike == 1 ? true : false,
+              share_from_user_name: foundName.user_name
+            };
+          }
+
+          return {
+            ...post._doc,
+            author_name: user_name,
+            author_avatar: user_avatar,
+            is_like: isLike == 1 ? true : false,
+          };
+        })
+      );
+      return newPosts;
   };
 
-  static getPostById = async ({ id }, user) => {
+  static getPostById = async ({ post_id }, user) => {
     // --------------------------------------------------
     // Lấy post
     // --------------------------------------------------
@@ -93,33 +125,78 @@ class PostService {
       // --------------------------------------------------
       // Nếu post của user, lấy hết
       // --------------------------------------------------
-      const post = await getPostByIdByUser({ id, user_id: user.id });
+      const post = await getPostByIdByUser({ id: post_id, user_id: user.id });
 
-      if (!post) {
-        // --------------------------------------------------
-        // Nếu post của người khác, lấy public
-        // --------------------------------------------------
-        const post = await getPostById({ id });
-      }
-      const { user_name, user_avatar } = await getNameAvatarById({
-        _id: post.author_id,
-      });
+      if (post) {
+        const { user_name, user_avatar } = await getNameAvatarById({
+          _id: post.author_id,
+        });
 
-      return {
-        ...post._doc,
-        author_name: user_name,
-        author_avatar: user_avatar,
+        post.likes = await likeModel.countDocuments({ post_id: post.id });
+        post.comments = await commentModel.countDocuments({
+          post_id: post.id,
+        });
+        post.shares = await shareModel.countDocuments({ post_id: post.id });
+
+        const isLike = await likeModel.countDocuments({post_id: post.id, user_id: user.id})
+        if(post.share_from_user_id){
+          const foundName = await getNameAvatarById({
+            _id: post.share_from_user_id,
+          });
+          return {
+            ...post._doc,
+            author_name: user_name,
+            author_avatar: user_avatar,
+            is_like: isLike == 1 ? true : false,
+            share_from_user_name: foundName.user_name
+          };
+        }
+
+        return {
+          ...post._doc,
+          author_name: user_name,
+          author_avatar: user_avatar,
+          is_like: isLike == 1 ? true : false,
+        };
       };
     }
     // --------------------------------------------------
     // Nếu post không auth, lấy hết public
     // --------------------------------------------------
-    const post = await getPostById({ id });
+    const post = await getPostById({ id: post_id });
     if (!post) {
       throw new BadRequestError("Error: Post not exist");
     }
+    const { user_name, user_avatar } = await getNameAvatarById({
+      _id: post.author_id,
+    });
 
-    return post;
+    post.likes = await likeModel.countDocuments({ post_id: post.id });
+    post.comments = await commentModel.countDocuments({
+      post_id: post.id,
+    });
+    post.shares = await shareModel.countDocuments({ post_id: post.id });
+
+    const isLike = await likeModel.countDocuments({post_id: post.id, user_id: user.id})
+    if(post.share_from_user_id){
+      const foundName = await getNameAvatarById({
+        _id: post.share_from_user_id,
+      });
+      return {
+        ...post._doc,
+        author_name: user_name,
+        author_avatar: user_avatar,
+        is_like: isLike == 1 ? true : false,
+        share_from_user_name: foundName.user_name
+      };
+    }
+
+    return {
+      ...post._doc,
+      author_name: user_name,
+      author_avatar: user_avatar,
+      is_like: isLike == 1 ? true : false,
+    };
   };
 
   static getPostForUser = async (
@@ -140,9 +217,15 @@ class PostService {
         page,
       });
 
+      if (!posts) {
+        throw new BadRequestError("Error: Post not exist");
+      }
+
       const { user_name, user_avatar } = await getNameAvatarById({
         _id: id,
       });
+
+
       const newPosts = await Promise.all(
         posts.map(async (post) => {
           post.likes = await likeModel.countDocuments({ post_id: post.id });
@@ -150,18 +233,31 @@ class PostService {
             post_id: post.id,
           });
           post.shares = await shareModel.countDocuments({ post_id: post.id });
+
+          const isLike = await likeModel.countDocuments({post_id: post.id, user_id: user.id})
+          if(post.share_from_user_id){
+            const foundName = await getNameAvatarById({
+              _id: post.share_from_user_id,
+            });
+            return {
+              ...post._doc,
+              author_name: user_name,
+              author_avatar: user_avatar,
+              is_like: isLike == 1 ? true : false,
+              share_from_user_name: foundName.user_name
+            };
+          }
+
           return {
             ...post._doc,
             author_name: user_name,
             author_avatar: user_avatar,
+            is_like: isLike == 1 ? true : false,
           };
         })
       );
-
-      if (!posts) {
-        throw new BadRequestError("Error: Post not exist");
-      }
       return newPosts;
+
     }
 
     posts = await getPostByUserId({
@@ -175,26 +271,42 @@ class PostService {
       throw new BadRequestError("Error: Post not exist");
     }
 
-    const { user_name, user_avatar } = await getNameAvatarById({
-      _id: id,
-    });
     const newPosts = await Promise.all(
       posts.map(async (post) => {
+        const { user_name, user_avatar } = await getNameAvatarById({
+          _id: post.author_id,
+        });
+
         post.likes = await likeModel.countDocuments({ post_id: post.id });
-        post.comments = await commentModel.countDocuments({ post_id: post.id });
+        post.comments = await commentModel.countDocuments({
+          post_id: post.id,
+        });
         post.shares = await shareModel.countDocuments({ post_id: post.id });
-        // if(!post.share_from_user_id) {
-        //   const share_from_user_name = await get({ post_id: post.id });
-        // }
+
+        const isLike = await likeModel.countDocuments({post_id: post.id, user_id: user.id})
+        if(post.share_from_user_id){
+          const foundName = await getNameAvatarById({
+            _id: post.share_from_user_id,
+          });
+          return {
+            ...post._doc,
+            author_name: user_name,
+            author_avatar: user_avatar,
+            is_like: isLike == 1 ? true : false,
+            share_from_user_name: foundName.user_name
+          };
+        }
+
         return {
           ...post._doc,
           author_name: user_name,
           author_avatar: user_avatar,
+          is_like: isLike == 1 ? true : false,
         };
       })
     );
-
     return newPosts;
+
   };
 
   static createPost = async (
@@ -229,7 +341,9 @@ class PostService {
       _id: user_id,
     });
 
-    // await NotificationService.pusNotiToSystem({ id: user_id, type: "NEW POST" });
+    if(isPublished){
+      await NotificationService.pusNotiToSystem({ id: user_id, user_name, type: "NEW POST" }, {post_id: post._id});
+    }
 
     return {
       ...post._doc,

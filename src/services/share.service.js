@@ -6,6 +6,7 @@ const { getNameAvatarById } = require("../models/repositories/user.repo");
 const postModel = require("../models/post.model");
 const { convertToObjectIdMongodb } = require("../utils");
 const { createPost } = require("../models/repositories/post.repo");
+const { runProducerQueue } = require("../dbs/init.rabbit");
 class ShareService {
   static getShareByPostId = async (
     { post_id },

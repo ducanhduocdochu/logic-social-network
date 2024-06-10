@@ -7,6 +7,6 @@ const notificationController = require('../controllers/notification.controller')
 const router = express.Router()
 
 // Logout
-router.get('/',authentication, asyncHandler(notificationController.listNotiByUser))
+router.get('/',authentication(true), asyncHandler(notificationController.listNotiByUser))
 
 module.exports = router

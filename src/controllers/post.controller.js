@@ -40,7 +40,7 @@ class PostController{
 
     getPostForUser = async ( req, res, next ) => {
         new OK({
-            message: 'Delete post successfully!',
+            message: 'Get post successfully!',
             metadata: await PostService.getPostForUser(req.query, req.params, req.user)
         }).send(res)
     }

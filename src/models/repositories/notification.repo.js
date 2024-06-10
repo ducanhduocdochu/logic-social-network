@@ -5,12 +5,14 @@ const createNoti = async ({
   noti_senderId,
   noti_receivedId,
   noti_seen,
+  option
 }) => {
   return await notificationModel.create({
     noti_type,
     noti_senderId,
     noti_receivedId,
     noti_seen,
+    option
   });
 };
 

@@ -10,10 +10,7 @@ const router = express.Router()
 router.get('/', authentication(false) ,asyncHandler(postController.getListPost))
 
 // // Get post by id, có auth thì (id post của mình thì lấy tất cả), id post không của mình lấy public
-router.get('/:id', authentication(false), asyncHandler(postController.getPostById))
-
-// // Search post
-// router.get('/:search-text', authentication, asyncHandler(postController.searchPost))
+router.get('/:post_id', authentication(false), asyncHandler(postController.getPostById))
 
 // // Create post, bất buộc auth
 router.post('/', authentication(true), asyncHandler(postController.createPost))
